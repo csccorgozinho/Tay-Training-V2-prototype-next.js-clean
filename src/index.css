@@ -1,0 +1,181 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 339 100% 64%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 5.9% 10%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 339 100% 95%;
+    --accent-foreground: 339 100% 64%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 339 100% 64%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 10% 3.9%;
+    --sidebar-primary: 339 100% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 339 100% 95%;
+    --sidebar-accent-foreground: 339 100% 64%;
+    --sidebar-border: 240 5.9% 90%;
+    --sidebar-ring: 339 100% 64%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border selection:bg-primary/10 selection:text-primary;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  /* Customized scrollbar for dialogs and other scrollable areas */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .glass-effect {
+    @apply backdrop-blur-lg bg-white/80 border border-white/20 shadow-sm;
+  }
+  
+  .pink-glass {
+    @apply backdrop-blur-lg bg-primary/5 border border-primary/20 shadow-sm;
+  }
+  
+  .animate-in {
+    animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .animate-dialog {
+    animation: dialogIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes dialogIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Dialog open: slide from slightly above center to center while fading in */
+  @keyframes dialogOpenFromTop {
+    from { opacity: 0; transform: translate(-50%, -70%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+
+  /* Dialog close: slide down from center and fade out */
+  @keyframes dialogCloseToBottom {
+    from { opacity: 1; transform: translate(-50%, -50%); }
+    to { opacity: 0; transform: translate(-50%, -20%); }
+  }
+
+  .animate-dialog-open {
+    animation: dialogOpenFromTop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-dialog-close {
+    animation: dialogCloseToBottom 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Responsive container utilities */
+  .container-responsive {
+    @apply w-full max-w-7xl mx-auto;
+  }
+
+  .px-responsive {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .py-responsive {
+    @apply py-6 sm:py-8;
+  }
+
+  .gap-responsive {
+    @apply gap-4 sm:gap-6;
+  }
+
+  .mb-responsive {
+    @apply mb-6 sm:mb-8;
+  }
+}

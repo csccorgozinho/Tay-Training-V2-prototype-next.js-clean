@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Core Models
+// ============================================
+
+model User {
+  id             Int       @id @default(autoincrement())
+  name           String    @db.VarChar(255)
+  email          String    @db.VarChar(255)
+  password       String    @db.Text
+  codeToRecovery String?   @db.VarChar(255)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamp()
+
+  @@map("users")
+}
+
+model Menu {
+  id          Int            @id @default(autoincrement())
+  name        String         @db.VarChar(255)
+  description String         @db.Text
+  pdfUrl      String         @map("pdf_url") @db.VarChar(500)
+  minCalories Int?           @map("min_calories")
+  maxCalories Int?           @map("max_calories")
+  status      ExerciseStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamp()
+
+  @@map("menus")
+}
+
+enum ExerciseStatus {
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+}
+
+// ============================================
+// Exercise Related Models
+// ============================================
+
+model Exercise {
+  id                      Int                      @id @default(autoincrement())
+  name                    String                   @db.VarChar(255)
+  description             String?                  @db.Text
+  videoUrl                String?                  @map("video_url") @db.VarChar(255)
+  hasMethod               Boolean                  @default(true) @map("has_method")
+  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt               DateTime                 @updatedAt @map("updated_at") @db.Timestamp()
+  exerciseConfigurations  ExerciseConfiguration[]
+
+  @@map("exercises")
+}
+
+model Method {
+  id                     Int                     @id @default(autoincrement())
+  name                   String                  @db.VarChar(255)
+  description            String                  @db.Text
+  createdAt              DateTime                @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt              DateTime                @updatedAt @map("updated_at") @db.Timestamp()
+  exerciseConfigurations ExerciseConfiguration[]
+
+  @@map("methods")
+}
+
+model ExerciseGroupCategory {
+  id             Int             @id @default(autoincrement())
+  name           String          @db.VarChar(255)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamp()
+  exerciseGroups ExerciseGroup[]
+
+  @@map("exercise_group_categories")
+}
+
+model ExerciseGroup {
+  id              Int                    @id @default(autoincrement())
+  name            String                 @db.VarChar(255)
+  categoryId      Int                    @map("category_id")
+  publicName      String?                @db.VarChar(255)
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamp()
+  
+  // Relations
+  category        ExerciseGroupCategory  @relation(fields: [categoryId], references: [id])
+  exerciseMethods ExerciseMethod[]
+  trainingDays    TrainingDay[]
+
+  @@map("exercise_groups")
+}
+
+model ExerciseMethod {
+  id                     Int                     @id @default(autoincrement())
+  rest                   String                  @db.VarChar(255)
+  observations           String?                 @db.VarChar
+  order                  Int?
+  exerciseGroupId        Int                     @map("exercise_group_id")
+  createdAt              DateTime                @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt              DateTime                @updatedAt @map("updated_at") @db.Timestamp()
+  
+  // Relations
+  exerciseGroup          ExerciseGroup           @relation(fields: [exerciseGroupId], references: [id], onDelete: Cascade)
+  exerciseConfigurations ExerciseConfiguration[]
+
+  @@map("exercise_methods")
+}
+
+model ExerciseConfiguration {
+  id               Int             @id @default(autoincrement())
+  series           String          @db.VarChar(255)
+  reps             String          @map("repetitions") @db.VarChar(255)
+  exerciseMethodId Int?            @map("exercise_method_id")
+  exerciseId       Int?            @map("exercise_id")
+  methodId         Int?            @map("method_id")
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamp()
+  
+  // Relations
+  exerciseMethod   ExerciseMethod? @relation(fields: [exerciseMethodId], references: [id], onDelete: Cascade)
+  exercise         Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  method           Method?         @relation(fields: [methodId], references: [id], onDelete: Cascade)
+
+  @@map("exercise_configurations")
+}
+
+// ============================================
+// Training Related Models
+// ============================================
+
+model TrainingSheet {
+  id           Int           @id @default(autoincrement())
+  name         String        @db.VarChar(255)
+  publicName   String?       @db.VarChar(255)
+  slug         String?       @db.VarChar(255)
+  offlinePdf   String?       @db.VarChar(255)
+  newTabPdf    String?       @db.VarChar(255)
+  pdfPath      String?       @db.VarChar(255)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamp()
+  
+  // Relations
+  trainingDays TrainingDay[]
+
+  @@map("training_sheets")
+}
+
+model TrainingDay {
+  id              Int           @id @default(autoincrement())
+  day             Int
+  trainingSheetId Int           @map("training_sheet_id")
+  exerciseGroupId Int           @map("exercise_group_id")
+  shortName       String?       @map("short_name")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamp()
+  
+  // Relations
+  trainingSheet   TrainingSheet @relation(fields: [trainingSheetId], references: [id], onDelete: Cascade)
+  exerciseGroup   ExerciseGroup @relation(fields: [exerciseGroupId], references: [id], onDelete: Cascade)
+
+  @@map("training_days")
+}
