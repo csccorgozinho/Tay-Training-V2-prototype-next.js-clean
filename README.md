@@ -182,8 +182,6 @@ NEXTAUTH_SECRET="seu_secret_aqui_minimo_32_caracteres"
 NODE_ENV="development"
 ```
 
-**⚠️ Importante:** Nunca commite o arquivo `.env` no Git!
-
 ---
 
 ## 🤝 Contribuindo
@@ -225,12 +223,6 @@ Encontrou um bug? Abra uma [issue](../../issues) com:
 - [ ] Sistema de notificações
 - [ ] Exportação de fichas em PDF
 
-### **Futuro:**
-- [ ] Modo treino (workout mode) com timer
-- [ ] Histórico de treinos
-- [ ] Sistema de conquistas
-- [ ] Aplicativo mobile (React Native)
-- [ ] Suporte multi-idiomas
 
 Veja o [roadmap completo](documentation/melhoria-do-projeto.md).
 
@@ -238,7 +230,6 @@ Veja o [roadmap completo](documentation/melhoria-do-projeto.md).
 
 ## 🔒 Segurança
 
-Encontrou uma vulnerabilidade de segurança? **NÃO** abra uma issue pública. Entre em contato diretamente pelo email: security@taytraining.com
 
 Consulte nosso [guia de segurança](documentation/seguranca.md) para mais informações.
 
@@ -252,7 +243,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 👥 Autores
 
-- **Desenvolvedor Principal** - [Seu Nome](https://github.com/seu-usuario)
+- **Desenvolvedor Principal** - [Caio Silva](https://github.com/seu-usuario)
 
 ---
 
@@ -265,27 +256,9 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ---
 
-## 📞 Suporte
-
-Precisa de ajuda? Entre em contato:
-
-- 📧 Email: suporte@taytraining.com
-- 💬 Discord: [Tay Training Community](https://discord.gg/taytraining)
-- 📝 Documentação: [/documentation](documentation/)
-- 🐛 Issues: [GitHub Issues](../../issues)
-
----
 
 ## 🌟 Mostre seu apoio
 
 Se este projeto foi útil, considere dar uma ⭐ no GitHub!
 
 ---
-
-<div align="center">
-  
-**Desenvolvido com ❤️ e ☕ por [Tay Training Team](https://github.com/taytraining)**
-
-[Website](https://taytraining.com) • [Documentação](documentation/) • [Changelog](CHANGELOG.md)
-
-</div>
