@@ -1,5 +1,31 @@
-import { useState, useEffect } from "react";
+"use strict";
+
+/**
+ * File: CategoryFilterDialog.tsx
+ * Description: Modal dialog component for filtering workout sheets by category with animations.
+ * Responsibilities:
+ *   - Display category list in a modal dialog
+ *   - Handle category selection and filtering
+ *   - Show "All Categories" option to clear filters
+ *   - Display loading skeletons during data fetch
+ *   - Show error messages if category loading fails
+ *   - Provide visual feedback for selected category
+ *   - Animate dialog appearance and category list
+ *   - Handle dialog open/close state
+ * Called by:
+ *   - src/pages/WorkoutSheets.tsx (workout sheets page for category filtering)
+ * Notes:
+ *   - Uses Framer Motion for smooth animations
+ *   - All text content is in Portuguese to match application language
+ *   - Selected category is indicated with checkmark and default variant
+ *   - Supports null categoryId to show all categories
+ *   - Loading state shows 4 skeleton placeholders
+ *   - Categories list is scrollable with max height of 96 units
+ *   - Dialog footer shows "Clear Filter" button only when a category is selected
+ */
+
 import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 import { ANIMATION } from "@/config/constants";
 import {
   Dialog,
@@ -10,24 +36,74 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X } from "lucide-react";
-import { modalSlideUpIn, listContainer, listItem, hoverScale, tapScale } from "@/lib/motion-variants";
+import {
+  modalSlideUpIn,
+  listContainer,
+  listItem,
+  hoverScale,
+  tapScale,
+} from "@/lib/motion-variants";
 
+/**
+ * Category data structure.
+ */
 interface Category {
   id: number;
   name: string;
 }
 
+/**
+ * Props for CategoryFilterDialog component.
+ */
 interface CategoryFilterDialogProps {
+  /** Whether the dialog is open */
   open: boolean;
+  /** Callback when dialog open state changes */
   onOpenChange: (open: boolean) => void;
+  /** Array of available categories */
   categories: Category[];
+  /** Currently selected category ID, null means all categories */
   selectedCategoryId: number | null;
+  /** Callback when a category is selected */
   onCategorySelect: (categoryId: number | null) => void;
+  /** Whether categories are currently loading */
   isLoading?: boolean;
+  /** Error message if category loading failed */
   error?: string | null;
 }
 
+/**
+ * Number of skeleton loaders to show during loading state.
+ */
+const SKELETON_COUNT = 4;
+
+/**
+ * Validates that a category object has required properties.
+ *
+ * @param category - Category object to validate
+ * @returns true if valid, false otherwise
+ */
+function isValidCategory(category: unknown): category is Category {
+  if (!category || typeof category !== "object") {
+    return false;
+  }
+
+  const cat = category as Record<string, unknown>;
+
+  return (
+    typeof cat.id === "number" &&
+    typeof cat.name === "string" &&
+    cat.name.trim().length > 0
+  );
+}
+
+/**
+ * Category filter dialog component.
+ * Displays a modal for filtering workout sheets by category.
+ *
+ * @param props - Component props
+ * @returns JSX element containing the category filter dialog
+ */
 export function CategoryFilterDialog({
   open,
   onOpenChange,
@@ -37,13 +113,34 @@ export function CategoryFilterDialog({
   isLoading = false,
   error = null,
 }: CategoryFilterDialogProps) {
-  const handleSelectCategory = (categoryId: number | null) => {
+  /**
+   * Handles category selection.
+   *
+   * @param categoryId - Selected category ID or null for all categories
+   */
+  function handleSelectCategory(categoryId: number | null): void {
     onCategorySelect(categoryId);
-  };
+  }
 
-  const handleClearFilters = () => {
+  /**
+   * Clears all category filters by selecting null.
+   */
+  function handleClearFilters(): void {
     onCategorySelect(null);
-  };
+  }
+
+  /**
+   * Handles dialog close action.
+   */
+  function handleClose(): void {
+    onOpenChange(false);
+  }
+
+  // Filter out invalid categories
+  const validCategories = categories.filter(isValidCategory);
+
+  // Determine if there are no categories to display
+  const hasNoCategories = validCategories.length === 0 && !isLoading && !error;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,6 +151,7 @@ export function CategoryFilterDialog({
           animate="visible"
           exit="exit"
         >
+          {/* Dialog Header */}
           <DialogHeader className="px-6 pt-6 pb-2">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -67,6 +165,7 @@ export function CategoryFilterDialog({
             </motion.div>
           </DialogHeader>
 
+          {/* Dialog Body */}
           <div className="px-6 py-4 space-y-4 max-h-96 overflow-y-auto">
             {/* All Categories Button */}
             <motion.div
@@ -80,7 +179,7 @@ export function CategoryFilterDialog({
               <Button
                 variant={selectedCategoryId === null ? "default" : "outline"}
                 className="w-full justify-start transition-all duration-200"
-                onClick={() => handleClearFilters()}
+                onClick={handleClearFilters}
                 disabled={isLoading}
               >
                 <span className="flex-1 text-left">Todas as Categorias</span>
@@ -88,7 +187,11 @@ export function CategoryFilterDialog({
                   <motion.div
                     initial={{ scale: 0, rotate: -90 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', stiffness: ANIMATION.SPRING_STIFFNESS, damping: ANIMATION.SPRING_DAMPING }}
+                    transition={{
+                      type: "spring",
+                      stiffness: ANIMATION.SPRING_STIFFNESS,
+                      damping: ANIMATION.SPRING_DAMPING,
+                    }}
                   >
                     <X className="h-4 w-4 ml-2" />
                   </motion.div>
@@ -96,7 +199,7 @@ export function CategoryFilterDialog({
               </Button>
             </motion.div>
 
-            {/* Category Buttons */}
+            {/* Category List or Loading State */}
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
@@ -106,12 +209,12 @@ export function CategoryFilterDialog({
                   exit={{ opacity: 0 }}
                   className="space-y-2"
                 >
-                  {[...Array(4)].map((_, i) => (
+                  {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
                     <motion.div
-                      key={i}
+                      key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * ANIMATION.STAGGER_DELAY }}
+                      transition={{ delay: index * ANIMATION.STAGGER_DELAY }}
                     >
                       <Skeleton className="h-10 w-full" />
                     </motion.div>
@@ -126,7 +229,7 @@ export function CategoryFilterDialog({
                   className="space-y-2"
                   variants={listContainer}
                 >
-                  {categories.map((category, index) => (
+                  {validCategories.map((category, index) => (
                     <motion.div
                       key={category.id}
                       variants={listItem}
@@ -135,12 +238,18 @@ export function CategoryFilterDialog({
                       custom={index}
                     >
                       <Button
-                        variant={selectedCategoryId === category.id ? "default" : "outline"}
+                        variant={
+                          selectedCategoryId === category.id
+                            ? "default"
+                            : "outline"
+                        }
                         className="w-full justify-start transition-all duration-200"
                         onClick={() => handleSelectCategory(category.id)}
                         disabled={isLoading}
                       >
-                        <span className="flex-1 text-left">{category.name}</span>
+                        <span className="flex-1 text-left">
+                          {category.name}
+                        </span>
                         {selectedCategoryId === category.id && (
                           <motion.span
                             initial={{ scale: 0 }}
@@ -158,7 +267,8 @@ export function CategoryFilterDialog({
               )}
             </AnimatePresence>
 
-            {categories.length === 0 && !isLoading && !error && (
+            {/* Empty State */}
+            {hasNoCategories && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -168,19 +278,22 @@ export function CategoryFilterDialog({
               </motion.div>
             )}
 
+            {/* Error State */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="py-6 px-4 rounded-lg bg-destructive/10 border border-destructive/20"
               >
-                <p className="text-sm font-medium text-destructive">Erro ao carregar categorias</p>
+                <p className="text-sm font-medium text-destructive">
+                  Erro ao carregar categorias
+                </p>
                 <p className="text-xs text-destructive/80 mt-1">{error}</p>
               </motion.div>
             )}
           </div>
 
-          {/* Dialog Footer Actions */}
+          {/* Dialog Footer */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -196,7 +309,7 @@ export function CategoryFilterDialog({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
               >
                 Fechar
               </Button>

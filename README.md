@@ -1,634 +1,291 @@
-# Tay Training Prototype
+# 🏋️ Tay Training
 
-A modern full-stack web application for managing exercise training, workout schedules, and fitness tracking.
+Sistema completo de gerenciamento de treinos e exercícios, desenvolvido com Next.js, React e PostgreSQL.
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Node](https://img.shields.io/badge/node-18.x%2B-green)
+![Next.js](https://img.shields.io/badge/Next.js-14.0-black?style=flat&logo=next.js)
+![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?style=flat&logo=typescript)
+![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?style=flat&logo=prisma)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat&logo=tailwind-css)
 
-## 🚀 Features
+---
 
-- **📋 Exercise Management** - Create, organize, and categorize exercises with customizable parameters
-- **🎯 Training Methods** - Define and manage training methodologies with standardized protocols
-- **📅 Training Schedules** - Multi-week schedule planning with drag-and-drop interface
-- **📊 Workout Sheets** - Detailed workout templates with advanced filtering and grouping
-- **👤 User Profiles** - Manage user accounts, preferences, and training history
-- **🔐 Authentication** - Secure credential-based login and session management with NextAuth.js v4
-- **🎨 Modern UI** - Component-driven interface with Radix UI primitives and Tailwind CSS
-- **💾 Data Persistence** - PostgreSQL with Prisma ORM for reliable data management
-- **📱 Responsive Design** - Fully responsive mobile-first interface with adaptive navigation
-- **⚡ Real-time Feedback** - Toast notifications, loading states, and activity tracking
-- **🎬 Smooth Animations** - Framer Motion for engaging user interactions
+## 📋 Sobre o Projeto
 
-## 🛠️ Tech Stack
+**Tay Training** é uma aplicação web moderna para gerenciamento de fichas de treino, exercícios e métodos de treinamento. Ideal para personal trainers, academias e praticantes de musculação que desejam organizar e acompanhar seus treinos de forma profissional.
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 14, React 18, TypeScript |
-| **Styling** | Tailwind CSS, PostCSS, Radix UI |
-| **State Management** | Zustand, React Hooks |
-| **Backend** | Next.js API Routes |
-| **Database** | PostgreSQL 12+, Prisma ORM 6.19.0 |
-| **Authentication** | NextAuth.js v4 |
-| **Animations** | Framer Motion 12.x |
-| **Validation** | Zod 3.x with React Hook Form |
-| **UI Primitives** | Radix UI 20+ components |
-| **Icons** | Lucide React (460+ icons) |
-| **Date Utilities** | date-fns 3.x |
-| **Build Tool** | Next.js (Webpack) with TypeScript 5.5 |
-| **Package Manager** | npm (or bun) |
+### ✨ Principais Funcionalidades
 
-## 📋 Prerequisites
+- 🏋️ **Gerenciamento de Exercícios** - Cadastro completo com categorias, descrições e imagens
+- 📋 **Fichas de Treino** - Crie e organize fichas personalizadas com exercícios, séries e repetições
+- 🎯 **Métodos de Treinamento** - Drop set, Bi-set, Tri-set, Pirâmide e muito mais
+- 📅 **Cronograma Semanal** - Organize treinos por dia da semana
+- 📊 **Dashboard Intuitivo** - Visualize estatísticas e acesse funcionalidades rapidamente
+- 🔒 **Autenticação Segura** - Login com NextAuth e senhas criptografadas
+- 📱 **Design Responsivo** - Interface adaptada para desktop e mobile
+- 🎨 **Tema Moderno** - UI elegante com Tailwind CSS e Shadcn/ui
 
-### Required
-- **Node.js** 18.x or higher ([Download](https://nodejs.org/))
-- **npm** 9.x or higher (comes with Node.js)
-- **PostgreSQL** 12.x or higher ([Download](https://www.postgresql.org/download/))
-- **Git** 2.x or higher ([Download](https://git-scm.com/))
+---
 
-### Recommended
-- **Node.js** 20.x LTS
-- **PostgreSQL** 15.x or higher
-- **RAM** 4GB+ for development
-- **Disk Space** 2GB+
+## 🚀 Começando
 
-### Check Your Versions
+### **Pré-requisitos:**
+
+- Node.js 18+ e npm
+- PostgreSQL 14+
+- Git
+
+### **Instalação Rápida:**
 
 ```bash
-# Check Node.js version
-node --version
-# Should output: v18.0.0 or higher
+# 1. Clone o repositório
+git clone <url-do-repositório>
+cd taytraining-frontend-main
 
-# Check npm version
-npm --version
-# Should output: 9.0.0 or higher
-
-# Check PostgreSQL version
-psql --version
-# Should output: PostgreSQL 12.0 or higher
-```
-
-## ⚡ Quick Start
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/tay-training-prototype.git
-cd tay-training-prototype/taytraining-frontend-main
-```
-
-### 2. Install Dependencies
-
-```bash
+# 2. Instale as dependências
 npm install
-```
 
-**Installation Time:** 3-10 minutes depending on internet speed
-
-### 3. Set Up Environment Variables
-
-Create a `.env` file in the root directory:
-
-```bash
+# 3. Configure o banco de dados
+# Copie o arquivo .env.example para .env
 cp .env.example .env
-```
 
-Or manually create `.env` with:
+# Edite o .env com suas credenciais do PostgreSQL
+# DATABASE_URL="postgresql://user:password@localhost:5432/taytraining"
 
-```dotenv
-# Database Connection
-DATABASE_URL="postgresql://username:password@localhost:5432/taytraining"
+# 4. Execute as migrations
+npx prisma migrate dev
 
-# Authentication (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-NEXTAUTH_SECRET="your-secret-key-here"
-NEXTAUTH_URL="http://localhost:3000"
+# 5. Popule o banco com dados iniciais
+npx prisma db seed
 
-# Environment
-NODE_ENV="development"
-```
-
-**Generate NEXTAUTH_SECRET:**
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-### 4. Set Up PostgreSQL Database
-
-#### Option A: Local PostgreSQL
-
-```bash
-# Create database
-createdb taytraining
-
-# Create user (optional but recommended)
-createuser -P tay
-```
-
-#### Option B: Docker
-
-```bash
-# Run PostgreSQL container
-docker run --name postgres-tay \
-  -e POSTGRES_DB=taytraining \
-  -e POSTGRES_USER=admin \
-  -e POSTGRES_PASSWORD=password123 \
-  -p 5432:5432 \
-  -d postgres:15
-```
-
-### 5. Run Database Migrations
-
-```bash
-# Generate Prisma client
-npx prisma generate
-
-# Run migrations
-npx prisma migrate deploy
-
-# Optional: Seed with sample data
-npm run seed
-```
-
-### 6. Start Development Server
-
-```bash
+# 6. Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Acesse: **http://localhost:3000**
 
-**Sample Credentials** (if you ran seed):
+**Login padrão:**
 - Email: `admin@example.com`
-- Password: `password123`
+- Senha: `admin123`
 
 ---
 
-## 📚 Available Scripts
+## 📚 Documentação Completa
 
-```bash
-# Development
-npm run dev           # Start dev server with hot reload (port 3000)
+Toda a documentação está disponível na pasta `documentation/`:
 
-# Building
-npm run build         # Create production build
-npm start             # Start production server
-
-# Database
-npx prisma migrate deploy    # Run pending migrations
-npx prisma migrate reset     # Reset database (CAUTION: deletes data)
-npx prisma studio           # Open database GUI (port 5555)
-npm run seed                # Seed database with sample data
-
-# Code Quality
-npm run lint          # Run ESLint
-npx tsc --noEmit      # TypeScript type checking
-
-# Package Management
-npm install           # Install dependencies
-npm update            # Update all dependencies
-npm prune             # Remove unused dependencies
-```
+- 📖 [**Visão Geral**](documentation/visao-geral.md) - Introdução e stack tecnológica
+- 🏗️ [**Arquitetura**](documentation/arquitetura.md) - Estrutura e fluxo de dados
+- 🔧 [**Instalação e Execução**](documentation/instalacao-e-execucao.md) - Guia completo de setup
+- 🌐 [**Guia da API**](documentation/guia-da-api.md) - Referência de todos os endpoints
+- ⚛️ [**Guia do Frontend**](documentation/guia-do-frontend.md) - Componentes e estrutura
+- 🔒 [**Segurança**](documentation/seguranca.md) - Vulnerabilidades e hardening
+- 📐 [**Padrões de Código**](documentation/padroes-de-codigo.md) - Convenções e boas práticas
+- 🚀 [**Melhorias do Projeto**](documentation/melhoria-do-projeto.md) - Roadmap e sugestões
+- 🧪 [**Testes**](documentation/testes.md) - Guia de testes com exemplos
 
 ---
 
-## 📂 Project Structure
+## 🛠️ Stack Tecnológica
+
+### **Frontend:**
+- **Next.js 14** - Framework React com SSR e API Routes
+- **React 18** - Biblioteca para interfaces de usuário
+- **TypeScript** - Tipagem estática
+- **Tailwind CSS** - Framework CSS utility-first
+- **Shadcn/ui** - Componentes acessíveis e customizáveis
+- **Framer Motion** - Animações fluidas
+- **React Hook Form** - Gerenciamento de formulários
+- **Zod** - Validação de schemas
+
+### **Backend:**
+- **Next.js API Routes** - Backend serverless
+- **Prisma** - ORM moderno para PostgreSQL
+- **NextAuth** - Autenticação completa
+- **bcryptjs** - Criptografia de senhas
+
+### **Banco de Dados:**
+- **PostgreSQL** - Banco relacional robusto
+
+---
+
+## 📂 Estrutura do Projeto
 
 ```
 taytraining-frontend-main/
-├── pages/                    # Next.js pages and API routes
-│   ├── _app.tsx             # App wrapper
-│   ├── index.tsx            # Home page
-│   ├── login.tsx            # Login page
-│   ├── exercises.tsx        # Exercise management
-│   ├── methods.tsx          # Training methods
-│   ├── training-schedule.tsx # Schedule management
-│   ├── workout-sheets.tsx   # Workout details
-│   ├── api/                 # API endpoints
-│   │   ├── auth/           # Authentication endpoints
-│   │   ├── categories/     # Category endpoints
-│   │   ├── db/            # Database operations
-│   │   ├── exercise-groups/
-│   │   ├── training-sheets/
-│   │   └── user/
-│   └── ...
-├── src/
-│   ├── components/          # React components
-│   │   ├── ui/             # Base UI components (Radix UI)
-│   │   ├── dialogs/        # Modal dialogs
-│   │   ├── layout/         # Layout components
-│   │   ├── auth/           # Auth forms
-│   │   └── profile/        # User profile components
-│   ├── hooks/              # Custom React hooks
-│   │   ├── use-loading.ts
-│   │   ├── use-pagination.ts
-│   │   ├── use-workout-sheets-filter.ts
+├── documentation/           # Documentação completa
+├── pages/                   # Páginas e API routes
+│   ├── api/                # Endpoints da API
+│   │   ├── auth/          # Autenticação
+│   │   ├── db/            # CRUD de recursos
 │   │   └── ...
-│   ├── lib/                # Utility functions
-│   │   ├── api-client.ts   # API wrapper
-│   │   ├── prisma.ts       # Prisma instance
-│   │   ├── auth-config.ts  # NextAuth config
-│   │   ├── activity-tracker.ts
-│   │   └── ...
-│   ├── types/              # TypeScript types
-│   ├── config/             # Configuration
-│   └── styles/             # Global styles
+│   ├── index.tsx          # Página inicial (redireciona para login)
+│   ├── login.tsx          # Página de login
+│   ├── home.tsx           # Dashboard principal
+│   ├── exercises.tsx      # Gerenciamento de exercícios
+│   ├── methods.tsx        # Métodos de treinamento
+│   └── workout-sheets.tsx # Fichas de treino
 ├── prisma/
-│   ├── schema.prisma       # Database schema
-│   ├── seed.ts             # Seed script
-│   └── migrations/         # Database migrations
-├── public/                 # Static files
-├── .env.example            # Environment template
-├── .gitignore              # Git ignore rules
-├── tsconfig.json           # TypeScript config
-├── next.config.js          # Next.js config
-├── tailwind.config.ts      # Tailwind config
-├── package.json            # Dependencies
-└── README.md              # This file
+│   ├── schema.prisma      # Schema do banco de dados
+│   ├── seed.ts            # Dados iniciais
+│   └── migrations/        # Histórico de migrações
+├── src/
+│   ├── components/        # Componentes React
+│   │   ├── auth/         # Login e autenticação
+│   │   ├── dialogs/      # Modais e diálogos
+│   │   ├── layout/       # Header, Footer, Layout
+│   │   └── ui/           # Componentes base (shadcn/ui)
+│   ├── hooks/            # Custom React hooks
+│   ├── lib/              # Utilitários e configurações
+│   ├── pages/            # Componentes de páginas
+│   └── types/            # Tipos TypeScript
+└── public/               # Arquivos estáticos
 ```
 
 ---
 
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Required | Example | Purpose |
-|----------|----------|---------|---------|
-| `DATABASE_URL` | Yes | `postgresql://user:pass@localhost/db` | Database connection |
-| `NEXTAUTH_SECRET` | Yes | 64 hex chars | JWT secret key |
-| `NEXTAUTH_URL` | No | `http://localhost:3000` | App URL (auto-detected) |
-| `NODE_ENV` | No | `development` | Environment mode |
-| `NEXT_PUBLIC_API_URL` | No | `http://localhost:3000` | API base URL |
-
-### Database URL Format
-
-```
-postgresql://[username]:[password]@[host]:[port]/[database]
-```
-
-**Examples:**
-
-```
-# Local development
-postgresql://postgres:password@localhost:5432/taytraining
-
-# Docker container
-postgresql://admin:password123@postgres-container:5432/taytraining
-
-# Cloud database (e.g., Railway, Neon)
-postgresql://user@host.region.db.provider.com/dbname?sslmode=require
-```
-
-### TypeScript Configuration
-
-The project uses TypeScript with the following settings:
-
-```json
-{
-  "strict": false,
-  "jsx": "preserve",
-  "target": "es2017",
-  "lib": ["es2017", "dom", "dom.iterable"],
-  "paths": {
-    "@/*": ["./src/*", "./pages/*", "./prisma/*"]
-  }
-}
-```
-
-**Note:** Strict mode is disabled for compatibility. Consider enabling it in your branch.
-
----
-
-## 🗄️ Database Schema
-
-### Main Entities
-
-- **User** - User accounts and authentication
-- **Exercise** - Individual exercises with metadata
-- **ExerciseMethod** - Training methods (sets, reps, weight)
-- **ExerciseGroup** - Groups of exercises by category
-- **TrainingSheet** - Workout plans
-- **Category** - Exercise categories
-- **ActivityLog** - User activity tracking
-
-See `prisma/schema.prisma` for detailed schema.
-
----
-
-## 🚀 Deployment
-
-### Build for Production
+## 🎯 Scripts Disponíveis
 
 ```bash
-# Create optimized production build
-npm run build
+# Desenvolvimento
+npm run dev              # Inicia servidor de desenvolvimento (porta 3000)
 
-# Start production server
-npm start
-```
+# Build
+npm run build            # Gera build de produção
+npm start                # Inicia servidor de produção
 
-### Deploy to Vercel (Recommended)
+# Banco de Dados
+npx prisma studio        # Abre interface visual do banco
+npx prisma migrate dev   # Cria nova migration
+npx prisma db seed       # Popula banco com dados iniciais
+npx prisma generate      # Gera Prisma Client
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-```
-
-### Deploy to Other Platforms
-
-#### Docker
-
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
-```bash
-docker build -t tay-training .
-docker run -p 3000:3000 -e DATABASE_URL="..." tay-training
-```
-
-#### Railway, Render, Heroku
-
-1. Push code to GitHub
-2. Connect repository to platform
-3. Set environment variables
-4. Deploy
-
-**Required environment variables for production:**
-```
-DATABASE_URL=postgresql://...
-NEXTAUTH_SECRET=<strong-random-key>
-NEXTAUTH_URL=https://yourdomain.com
-NODE_ENV=production
+# Linting
+npm run lint             # Verifica erros de código
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## 🔑 Variáveis de Ambiente
 
-### "DATABASE_URL is not set"
+Crie um arquivo `.env` na raiz do projeto:
 
-```bash
-# Add to .env file
-echo 'DATABASE_URL="postgresql://..."' >> .env
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/taytraining"
 
-# Verify
-cat .env | grep DATABASE_URL
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="seu_secret_aqui_minimo_32_caracteres"
+
+# Opcional
+NODE_ENV="development"
 ```
 
-### "Can't reach database server"
-
-```bash
-# Check PostgreSQL is running
-psql -U postgres
-
-# If not running:
-# macOS: brew services start postgresql
-# Linux: sudo systemctl start postgresql
-# Windows: Use Services app or net start PostgreSQL15
-
-# Verify connection string is correct
-# Format: postgresql://[user]:[password]@localhost:5432/[database]
-```
-
-### "relation 'users' does not exist"
-
-```bash
-# Run migrations
-npx prisma migrate deploy
-
-# Or reset database (CAUTION: deletes all data)
-npx prisma migrate reset
-```
-
-### "NEXTAUTH_SECRET is invalid"
-
-```bash
-# Generate new secret
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-# Add to .env
-NEXTAUTH_SECRET="generated-secret-here"
-
-# Restart server
-```
-
-### "Port 3000 is already in use"
-
-```bash
-# Find and kill process on port 3000
-# Windows
-netstat -ano | findstr :3000
-taskkill /PID <PID> /F
-
-# macOS/Linux
-lsof -i :3000
-kill -9 <PID>
-
-# Or use different port
-PORT=3001 npm run dev
-```
-
-### "Cannot find module '@prisma/client'"
-
-```bash
-# Regenerate Prisma client
-npx prisma generate
-
-# Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
-```
-
-For more troubleshooting, see `INSTALLATION_AND_RUNNING_GUIDE.md`.
+**⚠️ Importante:** Nunca commite o arquivo `.env` no Git!
 
 ---
 
-## 📖 Additional Documentation
+## 🤝 Contribuindo
 
-This project includes comprehensive documentation:
+Contribuições são bem-vindas! Para contribuir:
 
-- **`INSTALLATION_AND_RUNNING_GUIDE.md`** - Detailed setup instructions for all platforms
-- **`PROJECT_OVERVIEW.md`** - Project scope and features
-- **`ARCHITECTURE_SUMMARY.md`** - Technical architecture and design patterns
-- **`LIMITATIONS_AND_KNOWN_ISSUES.md`** - Known limitations and technical debt
-- **`FINAL_SUMMARY.md`** - Codebase assessment and recommendations
-- **`CODE_INVESTIGATION_REPORT.md`** - Full code analysis
-- **`DETAILED_ISSUES_REFERENCE.md`** - Issue reference guide
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
 
----
+### **Diretrizes:**
 
-## 🤝 Contributing
-
-1. Create a feature branch: `git checkout -b feature/my-feature`
-2. Commit changes: `git commit -am 'Add new feature'`
-3. Push to branch: `git push origin feature/my-feature`
-4. Submit a pull request
-
-### Code Quality
-
-Before submitting a PR, ensure:
-
-```bash
-npm run lint
-npx tsc --noEmit
-npm run build
-```
+- Siga os [padrões de código](documentation/padroes-de-codigo.md)
+- Escreva testes para novas funcionalidades
+- Documente mudanças significativas
+- Mantenha commits atômicos e descritivos
 
 ---
 
-## 📊 Project Status
+## 🐛 Reportar Bugs
 
-| Aspect | Status |
-|--------|--------|
-| **Build** | ✅ Passing |
-| **Runtime** | ✅ No errors |
-| **Features** | ✅ All implemented |
-| **Database** | ✅ Configured |
-| **Authentication** | ✅ Implemented |
-| **Type Safety** | 🟡 Good (not strict) |
-| **Tests** | ⚠️ None yet |
+Encontrou um bug? Abra uma [issue](../../issues) com:
+
+- Descrição clara do problema
+- Passos para reproduzir
+- Comportamento esperado vs atual
+- Screenshots (se aplicável)
+- Informações do ambiente (SO, versão do Node, etc.)
 
 ---
 
-## 🔒 Security
+## 📈 Roadmap
 
-### Important Security Notes
+### **Em Desenvolvimento:**
+- [ ] Testes automatizados (Jest + React Testing Library)
+- [ ] Dashboard com gráficos de progresso
+- [ ] Sistema de notificações
+- [ ] Exportação de fichas em PDF
 
-1. **Never commit `.env`** - File is in `.gitignore`
-2. **Use strong secrets** - Generate `NEXTAUTH_SECRET` with crypto module
-3. **Use HTTPS in production** - Set `NEXTAUTH_URL` to HTTPS domain
-4. **Secure database** - Use strong passwords and network isolation
-5. **Keep dependencies updated** - Run `npm audit fix` regularly
+### **Futuro:**
+- [ ] Modo treino (workout mode) com timer
+- [ ] Histórico de treinos
+- [ ] Sistema de conquistas
+- [ ] Aplicativo mobile (React Native)
+- [ ] Suporte multi-idiomas
 
-### Security Best Practices
-
-```bash
-# Check for vulnerabilities
-npm audit
-
-# Fix vulnerabilities
-npm audit fix
-
-# Update dependencies
-npm update
-
-# Check specific dependency
-npm show <package-name> version
-```
+Veja o [roadmap completo](documentation/melhoria-do-projeto.md).
 
 ---
 
-## 📝 License
+## 🔒 Segurança
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Encontrou uma vulnerabilidade de segurança? **NÃO** abra uma issue pública. Entre em contato diretamente pelo email: security@taytraining.com
 
----
-
-## 👥 Support
-
-- **Issues**: Create an issue on GitHub
-- **Discussions**: Use GitHub Discussions
-- **Documentation**: See files in project root
+Consulte nosso [guia de segurança](documentation/seguranca.md) para mais informações.
 
 ---
 
-## 🗂️ Related Files
+## 📄 Licença
 
-Key documentation files to review:
-
-```
-root/
-├── INSTALLATION_AND_RUNNING_GUIDE.md   # Setup for all platforms
-├── PROJECT_OVERVIEW.md                 # Project scope
-├── ARCHITECTURE_SUMMARY.md             # Technical details
-├── LIMITATIONS_AND_KNOWN_ISSUES.md     # Known issues
-├── FINAL_SUMMARY.md                    # Codebase assessment
-└── CODE_INVESTIGATION_REPORT.md        # Full analysis
-```
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
 
-## 📞 Getting Help
+## 👥 Autores
 
-1. **Check documentation** - Most issues are covered in guides
-2. **Search issues** - Your problem might already be solved
-3. **Check troubleshooting** - See section above
-4. **Create detailed issue** - Include environment info and steps to reproduce
+- **Desenvolvedor Principal** - [Seu Nome](https://github.com/seu-usuario)
 
 ---
 
-**Last Updated**: November 24, 2025  
-**Version**: 1.0.0  
-**Status**: ✅ Production Ready  
-**Build Status**: ✅ Passing  
-**Application Status**: ✅ Fully Functional
+## 🙏 Agradecimentos
+
+- [Next.js](https://nextjs.org/) - Framework React incrível
+- [Shadcn/ui](https://ui.shadcn.com/) - Componentes de UI belíssimos
+- [Prisma](https://www.prisma.io/) - ORM moderno e type-safe
+- [Vercel](https://vercel.com/) - Hospedagem e deploy simplificados
 
 ---
 
-## Quick Reference
+## 📞 Suporte
 
-### Development Workflow
+Precisa de ajuda? Entre em contato:
 
-```bash
-# 1. Clone and setup
-git clone <repo>
-cd taytraining-frontend-main
-npm install
-
-# 2. Create .env file
-cp .env.example .env
-# Edit DATABASE_URL and NEXTAUTH_SECRET
-
-# 3. Setup database
-npx prisma migrate deploy
-npm run seed
-
-# 4. Start development
-npm run dev
-
-# 5. Open browser
-# http://localhost:3000
-```
-
-### Production Deployment
-
-```bash
-# 1. Build
-npm run build
-
-# 2. Test production build locally
-npm start
-
-# 3. Set production environment variables
-# DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL
-
-# 4. Deploy to your platform
-# (Vercel, Railway, Render, etc.)
-```
-
-### Useful Commands
-
-```bash
-npm run dev                    # Dev server
-npm run build                  # Production build
-npm start                      # Start production
-npm run lint                   # Lint code
-npx prisma studio            # Database GUI
-npm run seed                   # Seed data
-```
+- 📧 Email: suporte@taytraining.com
+- 💬 Discord: [Tay Training Community](https://discord.gg/taytraining)
+- 📝 Documentação: [/documentation](documentation/)
+- 🐛 Issues: [GitHub Issues](../../issues)
 
 ---
 
-**Ready to get started?** Follow the [Quick Start](#-quick-start) section above!
+## 🌟 Mostre seu apoio
+
+Se este projeto foi útil, considere dar uma ⭐ no GitHub!
+
+---
+
+<div align="center">
+  
+**Desenvolvido com ❤️ e ☕ por [Tay Training Team](https://github.com/taytraining)**
+
+[Website](https://taytraining.com) • [Documentação](documentation/) • [Changelog](CHANGELOG.md)
+
+</div>

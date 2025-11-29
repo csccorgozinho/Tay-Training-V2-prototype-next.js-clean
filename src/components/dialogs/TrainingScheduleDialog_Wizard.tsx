@@ -1,31 +1,94 @@
+"use strict";
+
+/**
+ * File: TrainingScheduleDialog_Wizard.tsx
+ * Description: Multi-step wizard dialog for creating and editing 4-week training schedules with workout assignments, PDF uploads, and custom naming.
+ * Responsibilities:
+ *   - Display 4-step wizard for training schedule creation/editing
+ *   - Step 1: Collect schedule name, public name, and PDF file upload
+ *   - Step 2: Configure weekly workouts (4 weeks × 7 days = 28 days)
+ *   - Step 3: Customize short names for workouts used in schedule
+ *   - Step 4: Review and submit (handled by final next button)
+ *   - Load exercise groups from API for workout selection
+ *   - Convert week/day selection to absolute day numbers (1-28)
+ *   - Build training days payload with full exercise group data
+ *   - Handle PDF file uploads via FormData
+ *   - Track schedule creation/update activity
+ *   - Prevent double submission with guard flag
+ *   - Support edit mode with pre-populated data from existing schedules
+ * Called by:
+ *   - src/pages/TrainingSchedule.tsx (main training schedule management page)
+ *   - Other components that need training schedule CRUD operations
+ * Notes:
+ *   - "use client" directive required for Next.js client-side rendering
+ *   - 4-week schedule with 7 days per week = 28 total days
+ *   - Day calculation: absoluteDay = (week - 1) × 7 + dayOfWeek
+ *   - Reverse calculation: week = floor((day - 1) / 7) + 1, dayOfWeek = day - (week - 1) × 7
+ *   - Each workout can have custom short name for display
+ *   - Fetches full exercise group data including methods and configurations
+ *   - Uses FormData for multipart/form-data file uploads
+ *   - Activity tracking uses schedule name or "Novo Treino" fallback
+ *   - Double submission prevented with isSubmitting and hasSubmitted flags
+ *   - Edit mode loads existing PDF filename and allows viewing/replacing
+ */
+
 "use client";
 
 import React, { useState, useEffect } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import {
+  FileUp,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  X,
+  Calendar,
+  Pencil,
+  ClipboardCheck,
+  Loader2,
+  Dumbbell,
+} from "lucide-react";
 import { ActivityTracker } from "@/lib/activity-tracker";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { WorkoutSheetAutocomplete } from "./WorkoutSheetAutocomplete";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { FileUp, ChevronRight, ChevronLeft, Edit, Check, X, Calendar, Info, Pencil, ClipboardCheck, Loader2, Dumbbell } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { WorkoutSheetAutocomplete } from "./WorkoutSheetAutocomplete";
 
+/**
+ * Represents a workout sheet/exercise group.
+ */
 interface WorkoutSheet {
   id: number;
   name: string;
   publicName?: string;
 }
 
+/**
+ * Props for TrainingScheduleDialog component.
+ */
 interface TrainingScheduleDialogProps {
+  /** Whether the dialog is open */
   open: boolean;
+  /** Callback when dialog open state changes */
   onOpenChange: (open: boolean) => void;
+  /** Callback when schedule is successfully saved */
   onSaved?: () => void;
+  /** Existing schedule data for edit mode */
   editingData?: any;
 }
 
+/**
+ * Represents an exercise group with methods and configurations.
+ */
 interface ExerciseGroup {
   id: number;
   name: string;
@@ -34,170 +97,343 @@ interface ExerciseGroup {
   exerciseMethods?: Record<string, unknown>[];
 }
 
-interface WorkoutAlias {
-  groupId: number;
-  alias: string;
-}
-
+/**
+ * Represents a single day's workout assignment.
+ */
 interface DayPlan {
   [day: string]: {
     groupId: number | null;
   };
 }
 
+/**
+ * Represents all 4 weeks of workout assignments.
+ */
 interface WeekPlans {
   [week: string]: DayPlan;
 }
 
-const DAYS_OF_WEEK = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+/** Days of the week in Portuguese */
+const DAYS_OF_WEEK = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+];
 
-const createDefaultWeekPlans = (): WeekPlans => {
+/** Total number of wizard steps (excluding final submission step) */
+const TOTAL_WIZARD_STEPS = 4;
+
+/** Number of weeks in schedule */
+const WEEKS_COUNT = 4;
+
+/** Number of days per week */
+const DAYS_PER_WEEK = 7;
+
+/** Total days in schedule */
+const TOTAL_DAYS = WEEKS_COUNT * DAYS_PER_WEEK; // 28 days
+
+/**
+ * Creates default empty week plans for 4 weeks.
+ *
+ * @returns Empty week plans object
+ */
+function createDefaultWeekPlans(): WeekPlans {
   const plans: WeekPlans = {};
-  for (let week = 1; week <= 4; week++) {
+
+  for (let week = 1; week <= WEEKS_COUNT; week++) {
     plans[week.toString()] = {};
-    for (let day = 1; day <= 7; day++) {
+
+    for (let day = 1; day <= DAYS_PER_WEEK; day++) {
       plans[week.toString()][day.toString()] = { groupId: null };
     }
   }
-  return plans;
-};
 
-const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData }: TrainingScheduleDialogProps) => {
+  return plans;
+}
+
+/**
+ * Calculates absolute day number (1-28) from week and day of week.
+ *
+ * @param week - Week number (1-4)
+ * @param dayOfWeek - Day of week (1-7)
+ * @returns Absolute day number (1-28)
+ */
+function calculateAbsoluteDay(week: number, dayOfWeek: number): number {
+  return (week - 1) * DAYS_PER_WEEK + dayOfWeek;
+}
+
+/**
+ * Calculates week and day of week from absolute day number.
+ *
+ * @param absoluteDay - Absolute day number (1-28)
+ * @returns Object with week (1-4) and dayOfWeek (1-7)
+ */
+function calculateWeekAndDay(absoluteDay: number): {
+  week: number;
+  dayOfWeek: number;
+} {
+  const week = Math.floor((absoluteDay - 1) / DAYS_PER_WEEK) + 1;
+  const dayOfWeek = absoluteDay - (week - 1) * DAYS_PER_WEEK;
+  return { week, dayOfWeek };
+}
+
+/**
+ * Validates if a day number is within valid range (1-28).
+ *
+ * @param day - Day number to validate
+ * @returns True if day is valid, false otherwise
+ */
+function isValidDay(day: number): boolean {
+  return day >= 1 && day <= TOTAL_DAYS;
+}
+
+/**
+ * Extracts exercise groups array from various API response formats.
+ *
+ * @param data - API response data
+ * @returns Array of exercise groups
+ */
+function extractGroupsFromResponse(data: any): ExerciseGroup[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
+  
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  }
+  
+  if (data?.groups && Array.isArray(data.groups)) {
+    return data.groups;
+  }
+  
+  return [];
+}
+
+/**
+ * Validates if schedule name is not empty.
+ *
+ * @param name - Schedule name to validate
+ * @returns True if name is valid (not empty), false otherwise
+ */
+function isValidScheduleName(name: string): boolean {
+  return name.trim().length > 0;
+}
+
+function TrainingScheduleDialogWizard({
+  open,
+  onOpenChange,
+  onSaved,
+  editingData,
+}: TrainingScheduleDialogProps): JSX.Element {
   const { toast } = useToast();
 
   // Wizard step state
-  const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  const [currentStep, setCurrentStep] = useState<number>(1);
 
   // Form data
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState<string>("");
+  const [publicName, setPublicName] = useState<string>("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfFileName, setPdfFileName] = useState("");
+  const [pdfFileName, setPdfFileName] = useState<string>("");
 
   // Week configuration
-  const [selectedWeek, setSelectedWeek] = useState("1");
+  const [selectedWeek, setSelectedWeek] = useState<string>("1");
 
   // Exercise groups from API
   const [exerciseGroups, setExerciseGroups] = useState<ExerciseGroup[]>([]);
-  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+  const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
 
   // Workout configurations
-  const [workoutAliases, setWorkoutAliases] = useState<WorkoutAlias[]>([]);
-  const [isEditingAlias, setIsEditingAlias] = useState<number | null>(null);
-  const [aliasInput, setAliasInput] = useState("");
+  const [workoutShortNames, setWorkoutShortNames] = useState<Map<number, string>>(
+    new Map()
+  );
+  const [isEditingShortName, setIsEditingShortName] = useState<number | null>(
+    null
+  );
+  const [shortNameInput, setShortNameInput] = useState<string>("");
 
   // Week plans
-  const [weekPlans, setWeekPlans] = useState<WeekPlans>(createDefaultWeekPlans());
+  const [weekPlans, setWeekPlans] = useState<WeekPlans>(
+    createDefaultWeekPlans()
+  );
 
   // Form submission state
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [editingSheetId, setEditingSheetId] = useState<number | null>(null);
-  const [hasSubmitted, setHasSubmitted] = useState(false); // Guard against double submission
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
 
-  // Load exercise groups
-  useEffect(() => {
-    const loadGroups = async () => {
-      try {
-        setIsLoadingGroups(true);
-        const response = await fetch("/api/exercise-groups");
-        if (!response.ok) throw new Error("Failed to load groups");
+  /**
+   * Load exercise groups from API when dialog opens.
+   * Uses extractGroupsFromResponse helper for parsing.
+   */
+  useEffect(
+    function loadExerciseGroups(): void {
+      if (!open) return;
 
-        const data = await response.json();
-        let groups = [];
-        if (Array.isArray(data)) {
-          groups = data;
-        } else if (data?.data && Array.isArray(data.data)) {
-          groups = data.data;
-        } else if (data?.groups && Array.isArray(data.groups)) {
-          groups = data.groups;
+      const loadGroups = async (): Promise<void> => {
+        try {
+          setIsLoadingGroups(true);
+          const response = await fetch("/api/exercise-groups");
+          
+          if (!response.ok) {
+            throw new Error("Failed to load groups");
+          }
+
+          const data = await response.json();
+          const groups = extractGroupsFromResponse(data);
+          setExerciseGroups(groups);
+        } catch (err) {
+          console.error("Error loading groups:", err);
+          toast({
+            title: "Erro",
+            description: "Falha ao carregar grupos de exercício",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoadingGroups(false);
         }
-        setExerciseGroups(groups);
-      } catch (err) {
-        console.error("Error loading groups:", err);
-        toast({
-          title: "Erro",
-          description: "Falha ao carregar grupos de exercício",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingGroups(false);
-      }
-    };
+      };
 
-    if (open) {
       loadGroups();
-    }
-  }, [open, toast]);
+    },
+    [open, toast]
+  );
 
-  // Reset state when dialog opens/closes
-  useEffect(() => {
+  /**
+   * Reset state when dialog opens/closes.
+   * Loads editing data if present, otherwise resets to defaults.
+   */
+  useEffect(
+    function resetDialogState(): void {
     if (open) {
       setHasSubmitted(false);
       if (editingData?.id) {
         setEditingSheetId(editingData.id);
         setName(editingData.name || "");
-        setDescription(editingData.publicName || "");
+        setPublicName(editingData.publicName || "");
         setCurrentStep(1);
 
+        // Load existing PDF info
+        const existingPdfPath = (editingData as any)?.pdfPath;
+        if (existingPdfPath) {
+          const fileName = existingPdfPath.split('/').pop() || 'Arquivo existente';
+          setPdfFileName(fileName);
+        } else {
+          setPdfFileName("");
+        }
+
         const newWeekPlans = createDefaultWeekPlans();
+        const savedShortNamesMap = new Map<number, string>();
+        
         if (editingData.trainingDays && Array.isArray(editingData.trainingDays)) {
           (editingData?.trainingDays as any[] || []).forEach((trainingDay: Record<string, unknown>) => {
             const day = typeof trainingDay.day === 'number' ? trainingDay.day : 0;
-            const dayOfWeek = (day - 1) % 7;
+            
+            // Validate day is in range 1-28
+            if (day < 1 || day > 28) {
+              console.warn(`Invalid training day: ${day}, skipping`);
+              return;
+            }
+            
+            // Correct reverse calculation: day (1-28) → week (1-4) and dayOfWeek (1-7)
             const weekNumber = Math.floor((day - 1) / 7) + 1;
+            const dayOfWeek = day - (weekNumber - 1) * 7;
 
-            newWeekPlans[weekNumber.toString()][dayOfWeek + 1] = {
-              groupId: (typeof trainingDay.exerciseGroupId === 'number' ? trainingDay.exerciseGroupId : null) || null,
+            const groupId = (typeof trainingDay.exerciseGroupId === 'number' ? trainingDay.exerciseGroupId : null) || null;
+            
+            newWeekPlans[weekNumber.toString()][dayOfWeek.toString()] = {
+              groupId: groupId,
             };
+            
+            // Save the shortName from backend (like Angular v1 savedShortNames)
+            if (groupId && trainingDay.shortName && typeof trainingDay.shortName === 'string') {
+              savedShortNamesMap.set(groupId, trainingDay.shortName);
+            }
           });
         }
+        
         setWeekPlans(newWeekPlans);
+        setWorkoutShortNames(savedShortNamesMap);
       } else {
         setEditingSheetId(null);
         setCurrentStep(1);
         setName("");
-        setDescription("");
+        setPublicName("");
         setPdfFile(null);
         setPdfFileName("");
         setSelectedWeek("1");
         setWeekPlans(createDefaultWeekPlans());
-        setWorkoutAliases([]);
-        setIsEditingAlias(null);
-        setAliasInput("");
+        setWorkoutShortNames(new Map());
+        setIsEditingShortName(null);
+        setShortNameInput("");
       }
     }
-  }, [open, editingData]);
+  },
+    [open, editingData]
+  );
 
-  // Update aliases when workouts change
-  useEffect(() => {
+  /**
+   * Auto-generate short names for newly added workout groups.
+   * Maintains short names for groups already configured.
+   */
+  useEffect(
+    function syncWorkoutShortNames(): void {
     const usedGroupIds = new Set<number>();
-
     Object.values(weekPlans).forEach((week) => {
       Object.values(week).forEach((day) => {
-        if (day.groupId) {
-          usedGroupIds.add(day.groupId);
-        }
+        if (day.groupId) usedGroupIds.add(day.groupId);
       });
     });
 
-    const updatedAliases = workoutAliases.filter((alias) => usedGroupIds.has(alias.groupId));
+    // Only update if there are changes (avoid infinite loop)
+    const currentGroupIds = new Set(workoutShortNames.keys());
+    const hasChanges = 
+      usedGroupIds.size !== currentGroupIds.size ||
+      Array.from(usedGroupIds).some(id => !currentGroupIds.has(id)) ||
+      Array.from(currentGroupIds).some(id => !usedGroupIds.has(id));
+    
+    if (!hasChanges) return;
 
-    usedGroupIds.forEach((groupId) => {
-      if (!updatedAliases.some((alias) => alias.groupId === groupId)) {
-        const group = exerciseGroups.find((g) => g.id === groupId);
-        updatedAliases.push({
-          groupId,
-          alias: group ? group.name : "",
-        });
+    const newShortNames = new Map(workoutShortNames);
+    
+    // Convert to array to maintain order (like Angular v1 logic)
+    const sortedGroupIds = Array.from(usedGroupIds).sort((a, b) => a - b);
+    
+    sortedGroupIds.forEach((groupId, index) => {
+      if (!newShortNames.has(groupId)) {
+        // Use same logic as Angular v1: check saved names first, then fallback to "Treino N"
+        // This is needed because backend won't be updated
+        newShortNames.set(groupId, `Treino ${index + 1}`);
       }
     });
 
-    setWorkoutAliases(updatedAliases);
-  }, [weekPlans, exerciseGroups]);
+    // Remove groups that are no longer used
+    newShortNames.forEach((_, groupId) => {
+      if (!usedGroupIds.has(groupId)) {
+        newShortNames.delete(groupId);
+      }
+    });
 
-  // Handle workout change for a day
-  const handleWorkoutChange = (weekId: string, dayId: string, sheet: WorkoutSheet | null) => {
+    setWorkoutShortNames(newShortNames);
+  },
+    [weekPlans, workoutShortNames]
+  );
+
+  /**
+   * Handles workout selection for a specific day in a week.
+   * @param weekId - Week identifier ("1" to "4")
+   * @param dayId - Day identifier ("1" to "7")
+   * @param sheet - Selected workout sheet or null for no workout
+   */
+  function handleWorkoutChange(
+    weekId: string,
+    dayId: string,
+    sheet: WorkoutSheet | null
+  ): void {
     const groupId = sheet?.id || null;
     setWeekPlans((prev) => ({
       ...prev,
@@ -208,54 +444,73 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
         },
       },
     }));
-  };
+  }
 
-  // Handle PDF file change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Handles PDF file selection.
+   * @param e - File input change event
+   */
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>): void {
     if (e.target.files && e.target.files[0]) {
       setPdfFile(e.target.files[0]);
       setPdfFileName(e.target.files[0].name);
     }
-  };
+  }
 
-  // Alias editing handlers
-  const handleEditAlias = (groupId: number) => {
-    const currentAlias = workoutAliases.find((a) => a.groupId === groupId);
-    if (currentAlias) {
-      setAliasInput(currentAlias.alias);
-      setIsEditingAlias(groupId);
-    }
-  };
+  /**
+   * Initiates editing mode for a workout's short name.
+   * @param groupId - Exercise group ID to edit
+   */
+  function handleEditShortName(groupId: number): void {
+    const currentName = workoutShortNames.get(groupId) || "";
+    setShortNameInput(currentName);
+    setIsEditingShortName(groupId);
+  }
 
-  const handleSaveAlias = () => {
-    if (isEditingAlias === null) return;
+  /**
+   * Saves the edited short name for the current workout.
+   */
+  function handleSaveShortName(): void {
+    if (isEditingShortName === null) return;
 
-    setWorkoutAliases((prev) =>
-      prev.map((alias) => (alias.groupId === isEditingAlias ? { ...alias, alias: aliasInput } : alias))
-    );
+    const newShortNames = new Map(workoutShortNames);
+    newShortNames.set(isEditingShortName, shortNameInput);
+    setWorkoutShortNames(newShortNames);
+    setIsEditingShortName(null);
+  }
 
-    setIsEditingAlias(null);
-  };
+  /**
+   * Cancels short name editing without saving.
+   */
+  function handleCancelShortName(): void {
+    setIsEditingShortName(null);
+  }
 
-  const handleCancelAlias = () => {
-    setIsEditingAlias(null);
-  };
-
-  // Get group name
-  const getGroupName = (groupId: number | null): string => {
+  /**
+   * Gets the display name for an exercise group.
+   * @param groupId - Exercise group ID or null
+   * @returns Group name or fallback message
+   */
+  function getGroupName(groupId: number | null): string {
     if (!groupId) return "Nenhum treino";
     const group = exerciseGroups.find((g) => g.id === groupId);
     return group ? group.name : "Treino não encontrado";
-  };
+  }
 
-  // Get alias name
-  const getAliasName = (groupId: number): string => {
-    const alias = workoutAliases.find((a) => a.groupId === groupId);
-    return alias?.alias || getGroupName(groupId);
-  };
+  /**
+   * Gets the short name for a workout, falling back to full group name.
+   * @param groupId - Exercise group ID
+   * @returns Custom short name or full group name
+   */
+  function getShortName(groupId: number): string {
+    return workoutShortNames.get(groupId) || getGroupName(groupId);
+  }
 
-  // Get unique groups used
-  const getUniqueGroupsUsed = (): number[] => {
+  /**
+   * Gets unique exercise group IDs used across all weeks.
+   * @returns Array of unique group IDs
+   */
+  function getUniqueGroupsUsed(): number[] {
     const groupIds = new Set<number>();
 
     Object.values(weekPlans).forEach((week) => {
@@ -267,10 +522,15 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
     });
 
     return Array.from(groupIds);
-  };
+  }
 
-  // Form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  /**
+   * Handles form submission for creating or updating training schedule.
+   * Validates inputs, fetches group data, builds training days payload,
+   * and submits with PDF file if present.
+   * @param e - Form submit event
+   */
+  async function handleSubmit(e: FormEvent): Promise<void> {
     if (e) {
       e.preventDefault();
     }
@@ -280,7 +540,8 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
       return;
     }
 
-    if (!name.trim()) {
+    // Validate schedule name
+    if (!isValidScheduleName(name)) {
       toast({
         title: "Erro",
         description: "Nome da agenda é obrigatório",
@@ -289,6 +550,7 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
       return;
     }
 
+    // Validate at least one workout is assigned
     if (getUniqueGroupsUsed().length === 0) {
       toast({
         title: "Erro",
@@ -326,13 +588,21 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
               continue;
             }
 
+            // Validate day calculation
+            const absoluteDay = (week - 1) * 7 + dayOfWeek;
+            if (absoluteDay < 1 || absoluteDay > 28) {
+              console.error(`[Dialog] Invalid day calculation: week=${week}, dayOfWeek=${dayOfWeek}, absoluteDay=${absoluteDay}`);
+              dayCounter++;
+              continue;
+            }
+
             const methods = Array.isArray(fullGroup.exerciseMethods) ? fullGroup.exerciseMethods : [];
 
             if (methods.length === 0) {
               throw new Error(`Group "${fullGroup.name}" has no methods`);
             }
 
-            const customTitle = getAliasName(groupId);
+            const customTitle = getShortName(groupId);
             
             console.debug(`[Dialog] Day ${dayCounter}: Adding ${fullGroup.name} (groupId=${groupId}, customTitle=${customTitle}, methodCount=${methods.length})`);
 
@@ -381,7 +651,7 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
 
       const payload = {
         name,
-        publicName: description || name,
+        publicName: publicName || name,
         slug: name.toLowerCase().replace(/\s+/g, "-"),
         trainingDays: trainingDaysData,
       };
@@ -389,10 +659,22 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
       const method = editingSheetId ? "PUT" : "POST";
       const url = editingSheetId ? `/api/training-sheets/${editingSheetId}` : "/api/training-sheets";
 
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("publicName", publicName || name);
+      formData.append("slug", name.toLowerCase().replace(/\s+/g, "-"));
+      formData.append("trainingDays", JSON.stringify(trainingDaysData));
+
+      // Append PDF file if selected
+      if (pdfFile) {
+        formData.append("file", pdfFile);
+      }
+
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData, // Send FormData instead of JSON
+        // Note: Don't set Content-Type header, browser will set it automatically with boundary
       });
 
       if (!response.ok) {
@@ -426,29 +708,37 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
     }
   };
 
-  // Navigation
-  const goToNextStep = () => {
-    if (currentStep < totalSteps) {
-      if (currentStep === totalSteps - 1) {
-        handleSubmit(new Event("submit") as unknown as React.FormEvent);
+  /**
+   * Advances to the next wizard step or submits on final step.
+   */
+  function goToNextStep(): void {
+    if (currentStep < TOTAL_WIZARD_STEPS) {
+      if (currentStep === TOTAL_WIZARD_STEPS - 1) {
+        handleSubmit(new Event("submit") as unknown as FormEvent);
       } else {
         setCurrentStep(currentStep + 1);
       }
     }
-  };
+  }
 
-  const goToPreviousStep = () => {
+  /**
+   * Goes back to the previous wizard step.
+   */
+  function goToPreviousStep(): void {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  };
+  }
 
-  // Render step indicator
-  const renderStepIndicator = () => {
+  /**
+   * Renders the step indicator/progress bar for the wizard.
+   * @returns JSX element showing step progress
+   */
+  function renderStepIndicator(): JSX.Element {
     return (
       <div className="flex items-center justify-center">
         <div className="flex items-center gap-1">
-          {Array.from({ length: totalSteps - 1 }).map((_, index) => {
+          {Array.from({ length: TOTAL_WIZARD_STEPS - 1 }).map((_, index) => {
             const stepNumber = index + 1;
             const isActive = stepNumber === currentStep;
             const isCompleted = stepNumber < currentStep;
@@ -466,7 +756,7 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
                   {isCompleted ? <Check className="h-3.5 w-3.5" /> : stepNumber}
                 </Button>
 
-                {stepNumber < totalSteps - 1 && (
+                {stepNumber < TOTAL_WIZARD_STEPS - 1 && (
                   <div className={`h-0.5 w-12 ${stepNumber < currentStep ? "bg-primary" : "bg-muted"}`} />
                 )}
               </React.Fragment>
@@ -477,8 +767,11 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
     );
   };
 
-  // Get step title
-  const getStepTitle = () => {
+  /**
+   * Gets the title for the current wizard step.
+   * @returns Step title string
+   */
+  function getStepTitle(): string {
     switch (currentStep) {
       case 1:
         return "Informações da Agenda";
@@ -491,10 +784,13 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
       default:
         return "";
     }
-  };
+  }
 
-  // Render step content
-  const renderStepContent = () => {
+  /**
+   * Renders the content for the current wizard step.
+   * @returns JSX element with step-specific form content
+   */
+  function renderStepContent(): JSX.Element {
     const weeks = [
       { value: "1", label: "Semana 1" },
       { value: "2", label: "Semana 2" },
@@ -523,13 +819,13 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium">Descrição</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descrição da agenda (opcional)"
-                className="resize-none h-[90px] text-sm"
+              <Label htmlFor="publicName" className="text-sm font-medium">Nome Público (Exibido aos alunos)</Label>
+              <Input
+                id="publicName"
+                value={publicName}
+                onChange={(e) => setPublicName(e.target.value)}
+                placeholder="Ex: Mês 01 - Treino A"
+                className="h-9"
               />
             </div>
             <div className="space-y-2">
@@ -540,7 +836,22 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
                   <FileUp className="h-4 w-4" />
                 </Button>
               </div>
-              {pdfFileName && <p className="text-xs text-muted-foreground mt-1">Arquivo: {pdfFileName}</p>}
+              {pdfFileName && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  <p>Arquivo: {pdfFileName}</p>
+                  {editingSheetId && (editingData as any)?.pdfPath && !pdfFile && (
+                    <a 
+                      href={(editingData as any).pdfPath} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Visualizar PDF atual
+                    </a>
+                  )}
+                  {pdfFile && <p className="text-green-600">Novo arquivo selecionado (substituirá o existente)</p>}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -627,11 +938,11 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{getGroupName(groupId)}</p>
-                          {isEditingAlias === groupId ? (
+                          {isEditingShortName === groupId ? (
                             <div className="flex gap-2 items-center mt-2.5">
                               <Input
-                                value={aliasInput}
-                                onChange={(e) => setAliasInput(e.target.value)}
+                                value={shortNameInput}
+                                onChange={(e) => setShortNameInput(e.target.value)}
                                 placeholder="Nome personalizado"
                                 className="h-8 text-xs flex-1"
                                 autoFocus
@@ -640,7 +951,7 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
                                 type="button"
                                 size="icon"
                                 variant="outline"
-                                onClick={handleSaveAlias}
+                                onClick={handleSaveShortName}
                                 className="h-8 w-8 flex-shrink-0"
                               >
                                 <Check className="h-3 w-3" />
@@ -649,7 +960,7 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
                                 type="button"
                                 size="icon"
                                 variant="outline"
-                                onClick={handleCancelAlias}
+                                onClick={handleCancelShortName}
                                 className="h-8 w-8 flex-shrink-0"
                               >
                                 <X className="h-3 w-3" />
@@ -658,13 +969,13 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
                           ) : (
                             <div className="flex items-center justify-between mt-1.5">
                               <div className="text-xs text-muted-foreground truncate mr-2">
-                                <span className="font-medium">Exibir como:</span> {getAliasName(groupId)}
+                                <span className="font-medium">Exibir como:</span> {getShortName(groupId)}
                               </div>
                               <Button
                                 type="button"
                                 size="icon"
                                 variant="ghost"
-                                onClick={() => handleEditAlias(groupId)}
+                                onClick={() => handleEditShortName(groupId)}
                                 className="h-7 w-7 flex-shrink-0"
                               >
                                 <Pencil className="h-3 w-3" />
@@ -706,7 +1017,7 @@ const TrainingScheduleDialogWizard = ({ open, onOpenChange, onSaved, editingData
           </Button>
         )}
 
-        {currentStep < totalSteps - 1 ? (
+        {currentStep < TOTAL_WIZARD_STEPS - 1 ? (
           <Button type="button" onClick={goToNextStep} className="gap-2 h-9">
             Próximo
             <ChevronRight className="h-4 w-4" />
